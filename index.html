@@ -130,108 +130,98 @@
 </table>
 </div>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.getElementById('coinForm');
-    const remainingCoinsElement = document.getElementById('remainingCoins');
-    const userTableBody = document.querySelector('#userTable tbody');
-    const loader = document.getElementById('loader');
-    const progressBar = document.getElementById('progressBar');
-    const promovariButton = document.getElementById('promovariButton');
-    let remainingCoins = localStorage.getItem('remainingCoins') ? parseInt(localStorage.getItem('remainingCoins')) : 10000000;
+       document.addEventListener("DOMContentLoaded", function() {
+           const form = document.getElementById('coinForm');
+           const remainingCoinsElement = document.getElementById('remainingCoins');
+           const userTableBody = document.querySelector('#userTable tbody');
+           const loader = document.getElementById('loader');
+           const progressBar = document.getElementById('progressBar');
+           const promovariButton = document.getElementById('promovariButton');
+           let remainingCoins = parseInt(localStorage.getItem('remainingCoins')) || 10000000;
+           remainingCoinsElement.textContent = remainingCoins;
 
-    remainingCoinsElement.textContent = remainingCoins;
+           function loadUsers() {
+               const users = JSON.parse(localStorage.getItem('users')) || [];
+               users.forEach(user => {
+                   addUserToTable(user.username, user.coins);
+               });
+           }
 
-    function loadUsersFromLocalStorage() {
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        users.forEach(user => addUserToTable(user.username, user.coins));
-    }
+           loadUsers();
 
-    promovariButton.addEventListener('click', function() {
-        window.location.href = 'promovari.html';
-    });
+           promovariButton.addEventListener('click', function() {
+               window.location.href = 'promovari.html';
+           });
 
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        const username = form.username.value.trim();
-        const coins = parseInt(form.coins.value.trim(), 10);
-        if (username === "" || isNaN(coins) || coins <= 0) {
-            alert("Introdu un nume de utilizator valid și un număr pozitiv de monede.");
-            return;
-        }
-        if (coins > remainingCoins) {
-            alert("Număr insuficient de monede.");
-            return;
-        }
-        remainingCoins -= coins;
-        remainingCoinsElement.textContent = remainingCoins;
-        localStorage.setItem('remainingCoins', remainingCoins);
-        saveUserToLocalStorage(username, coins);
-        loader.classList.remove('hidden');
-        progressBar.classList.remove('hidden');
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 1;
-            progressBar.value = progress;
-            if (progress >= 10) {
-                   clearInterval(interval);
-                loader.classList.add('hidden');
-                progressBar.classList.add('hidden');
-                progressBar.value = 0;
-                addUserToTable(username, coins);
-            }
-        }, 100);
-    });
+           form.addEventListener('submit', function(event) {
+               event.preventDefault();
+               const username = form.username.value.trim();
+               const coins = parseInt(form.coins.value.trim(), 10);
+               if (username === "" || isNaN(coins) || coins <= 0) {
+                   alert("Introdu un nume de utilizator valid și un număr pozitiv de monede.");
+                   return;
+               }
+               if (coins > remainingCoins) {
+                   alert("Număr insuficient de monede.");
+                   return;
+               }
+               remainingCoins -= coins;
+               remainingCoinsElement.textContent = remainingCoins;
+               localStorage.setItem('remainingCoins', remainingCoins);
+               loader.classList.remove('hidden');
+               progressBar.classList.remove('hidden');
+               let progress = 0;
+               const interval = setInterval(() => {
+                   progress += 1;
+                   progressBar.value = progress;
+                   if (progress >= 10) {
+                       clearInterval(interval);
+                       loader.classList.add('hidden');
+                       progressBar.classList.add('hidden');
+                       progressBar.value = 0;
+                       addUserToTable(username, coins);
+                       saveUser(username, coins);
+                   }
+               }, 100);
+           });
 
-    function addUserToTable(username, coins) {
-        const row = document.createElement('tr');
-        const usernameCell = document.createElement('td');
-        const coinsCell = document.createElement('td');
-        const statusCell = document.createElement('td');
-        usernameCell.textContent = username;
-        coinsCell.textContent = coins;
-        statusCell.innerHTML = '<span class="timer">⏳ 00:00</span>';
-        row.appendChild(usernameCell);
-        row.appendChild(coinsCell);
-        row.appendChild(statusCell);
-        userTableBody.insertBefore(row, userTableBody.firstChild);
-        startUserTimer(statusCell.querySelector('.timer'), username);
-    }
+           function addUserToTable(username, coins) {
+               const row = document.createElement('tr');
+               const usernameCell = document.createElement('td');
+               const coinsCell = document.createElement('td');
+               const statusCell = document.createElement('td');
+               usernameCell.textContent = username;
+               coinsCell.textContent = coins;
+               statusCell.innerHTML = '<span class="timer">⏳ 00:00</span>';
+               row.appendChild(usernameCell);
+               row.appendChild(coinsCell);
+               row.appendChild(statusCell);
+               userTableBody.insertBefore(row, userTableBody.firstChild);
+               startUserTimer(statusCell.querySelector('.timer'));
+           }
 
-    function startUserTimer(timerElement, username) {
-        let timeRemaining;
-        const storedTime = localStorage.getItem(`${username}_time`);
-        if (storedTime) {
-            timeRemaining = parseInt(storedTime, 10);
-        } else {
-            const randomMinutes = Math.floor(Math.random() * 6) + 5;
-            const randomSeconds = Math.floor(Math.random() * 60);
-            timeRemaining = (randomMinutes * 60) + randomSeconds;
-            localStorage.setItem(`${username}_time`, timeRemaining);
-        }
+           function startUserTimer(timerElement) {
+               const randomMinutes = Math.floor(Math.random() * 11) + 35;
+               const randomSeconds = Math.floor(Math.random() * 60);
+               let timeRemaining = (randomMinutes * 60) + randomSeconds;
+               const interval = setInterval(() => {
+                   timeRemaining -= 1;
+                   const minutes = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
+                   const seconds = String(timeRemaining % 60).padStart(2, '0');
+                   timerElement.textContent = `⏳ ${minutes}:${seconds}`;
+                   if (timeRemaining <= 0) {
+                       clearInterval(interval);
+                       timerElement.textContent = '✔️';
+                   }
+               }, 1000);
+           }
 
-        const interval = setInterval(() => {
-            timeRemaining -= 1;
-            const minutes = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
-            const seconds = String(timeRemaining % 60).padStart(2, '0');
-            timerElement.textContent = `⏳ ${minutes}:${seconds}`;
-            if (timeRemaining <= 0) {
-                clearInterval(interval);
-                timerElement.textContent = '✔️';
-                localStorage.removeItem(`${username}_time`);
-            } else {
-                localStorage.setItem(`${username}_time`, timeRemaining);
-            }
-        }, 1000);
-    }
-
-    function saveUserToLocalStorage(username, coins) {
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        users.push({ username, coins });
-        localStorage.setItem('users', JSON.stringify(users));
-    }
-
-    loadUsersFromLocalStorage();
-});
+           function saveUser(username, coins) {
+               const users = JSON.parse(localStorage.getItem('users')) || [];
+               users.push({ username, coins });
+               localStorage.setItem('users', JSON.stringify(users));
+           }
+       });
 </script>
 </body>
 </html>
